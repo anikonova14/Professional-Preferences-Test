@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Тест профессиональных предпочтений</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#ffffff;
+      --surface:#ffffff;
+      --soft:#f6f7fb;
+      --fg:#101828;           /* нейтральный почти-чёрный */
+      --muted:#667085;        /* нейтральный серый */
+      --line:#e6e9ef;         /* тонкий разделитель */
+      --accent:#2563eb;       /* акцент (синий) */
+      --accent-weak:#eaf1ff;  /* мягкая подсветка */
+      --radius:12px;
+
+      --col-I:#059669; --col-II:#2563eb; --col-III:#f59e0b; --col-IV:#7c3aed; --col-V:#ef4444;
+    }
+    /* Тёмная тема */
+    html[data-theme="dark"]{
+      --bg:#0b0f19;
+      --surface:#0e1525;
+      --soft:#0f1a2a;
+      --fg:#e5e7eb;
+      --muted:#9aa4b2;
+      --line:#1f2a3a;
+      --accent:#60a5fa;
+      --accent-weak:#0e223d;
+    }
+
+    /* Базовые стили */
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;line-height:1.55}
+    body{scroll-behavior:smooth}
+    .container{max-width:880px;margin:0 auto;padding:0 16px 64px}
+
+    /* Снижение движения */
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none!important;transition:none!important}
+      html,body{scroll-behavior:auto}
+    }
+
+    /* Шапка + прогресс */
+    .appbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
+    .appbar-inner{max-width:880px;margin:0 auto;padding:10px 16px}
+    .appbar-row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .title{font-size:16px;font-weight:600;letter-spacing:.2px}
+    .tools{display:flex;gap:6px;align-items:center}
+    .btn{appearance:none;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,color .18s ease}
+    .btn:hover{background:var(--soft)}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+    .btn-primary{background:var(--fg);color:#fff;border-color:transparent}
+    .btn-primary:hover{filter:brightness(.95)}
+    .btn-ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+    .switch{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    .switch button{border:none;padding:8px 12px;background:transparent;color:var(--muted);cursor:pointer;transition:background-color .18s ease,color .18s ease}
+    .switch button.active{background:var(--soft);color:var(--fg);font-weight:600}
+    .progress-wrap{margin-top:8px}
+    .progress-line{height:6px;background:var(--soft);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+    .progress-val{height:100%;width:0%;background:var(--accent);transition:width .25s ease}
+    .progress-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+
+    header{max-width:880px;margin:0 auto;padding:10px 16px}
+    .instruction{background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:10px 0 6px}
+
+    /* Индекс вопросов (минималистичный) */
+    .q-index{position:sticky;top:64px;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+    .q-index-inner{max-width:880px;margin:0 auto;padding:6px 16px}
+    .index-row{display:flex;gap:6px;overflow:auto;padding:6px 0 8px;scrollbar-width:thin}
+    .idx{min-width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--fg);font-weight:600;font-size:13px;transition:border-color .18s ease,background-color .18s ease}
+    .idx.current{box-shadow:inset 0 0 0 2px var(--accent)}
+    .idx.answered{background:var(--soft)}
+    .idx:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+    /* Вопросы */
+    form{margin-top:8px}
+    .question{border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px;margin:14px 0;background:var(--surface);transition:border-color .18s ease,background-color .18s ease}
+    .question[hidden]{display:none}
+    .q-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .q-title b{font-size:16px}
+    .hint{font-size:12px;color:var(--muted)}
+
+    .options{display:grid;grid-template-columns:1fr;gap:10px}
+    @media (min-width:680px){ .options{grid-template-columns:1fr 1fr} }
+
+    label.option-card{display:block;cursor:pointer}
+    label.option-card input{position:absolute;opacity:0;pointer-events:none}
+    label.option-card .card{
+      display:flex;gap:10px;align-items:flex-start;
+      border:1px solid var(--line);border-radius:12px;padding:12px 12px;background:var(--surface);
+      transition:background-color .18s ease,border-color .18s ease,transform .12s ease
+    }
+    label.option-card .letter{
+      flex:0 0 auto;width:28px;height:28px;border-radius:7px;border:1px solid var(--line);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);background:var(--soft);
+      transition:background-color .18s ease,border-color .18s ease,color .18s ease
+    }
+    label.option-card .txt{color:var(--fg)}
+    label.option-card:hover .card{background:var(--soft)}
+    label.option-card input:focus-visible + .card{outline:2px solid var(--accent);outline-offset:2px}
+    label.option-card input:checked + .card{border-color:var(--accent);background:var(--accent-weak)}
+    label.option-card input:checked + .card .letter{background:var(--accent);color:#fff;border-color:transparent}
+
+    /* Нижняя панель действий */
+    .actions{
+      position:sticky;bottom:0;background:var(--surface);
+      border-top:1px solid var(--line);padding:12px 16px;margin-top:8px;
+      display:flex;gap:8px;align-items:center
+    }
+    .spacer{flex:1}
+    .kbd-hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* Результаты */
+    .results{display:none;margin-top:28px}
+    .results.active{display:block}
+    .summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .pill{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:8px 12px;font-size:14px}
+    .pill b{font-weight:600}
+
+    table.scoring{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden;table-layout:fixed;margin-top:8px}
+    table.scoring th, table.scoring td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 8px;text-align:center;vertical-align:middle}
+    table.scoring th:last-child, table.scoring td:last-child{border-right:none}
+    table.scoring tr:last-child td{border-bottom:none}
+    table.scoring th{background:var(--soft);font-weight:600}
+    table.scoring td.selected{background:var(--accent-weak);outline:2px solid var(--accent);outline-offset:-2px;font-weight:600}
+    .legend{margin-top:10px;color:var(--muted);font-size:14px}
+
+    .insight{margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface)}
+    .insight h3{margin:0 0 8px;font-size:18px}
+    .insight p{margin:0;color:var(--fg)}
+    .bars{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+    .bar-row{display:grid;grid-template-columns:160px 1fr 52px;gap:12px;align-items:center;font-size:14px}
+    .bar-label{color:var(--fg);font-weight:600}
+    .bar-track{height:8px;background:var(--soft);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+    .bar-fill{height:100%;width:0%;transition:width .35s ease}
+    .c-I{background:var(--col-I)} .c-II{background:var(--col-II)} .c-III{background:var(--col-III)} .c-IV{background:var(--col-IV)} .c-V{background:var(--col-V)}
+    .bar-count{font-variant-numeric:tabular-nums;color:var(--fg);text-align:right}
+
+    .type-cards{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+    details.type{border:1px solid var(--line);border-radius:12px;background:var(--soft);padding:10px 12px}
+    details.type[open]{background:var(--surface)}
+    details.type summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    details.type summary::-webkit-details-marker{display:none}
+    .badge{border-radius:999px;border:1px solid var(--line);padding:2px 8px;font-size:12px;color:var(--muted)}
+    .badge-strong{border-color:transparent;background:var(--fg);color:#fff}
+    .type-body{margin-top:10px;color:var(--fg)}
+    .type-body ul{margin:0 0 8px 18px}
+    .note,.footer-note{margin-top:8px;color:var(--muted);font-size:13px}
+
+    @media (max-width:640px){
+      .bar-row{grid-template-columns:130px 1fr 46px}
+      .idx{min-width:28px;height:28px}
+      .title{font-size:15px}
+    }
+
+    /* Печать: показываем только результаты */
+    @media print{
+      .appbar, .q-index, form, .instruction, header{display:none !important}
+      .results{display:block !important}
+      body{background:#fff;color:#000}
+    }
+  </style>
+</head>
+<body>
+  <!-- App bar -->
+  <div class="appbar" role="region" aria-label="Шапка и прогресс">
+    <div class="appbar-inner">
+      <div class="appbar-row">
+        <div class="title">Тест профессиональных предпочтений</div>
+        <div class="tools">
+          <div class="switch" role="tablist" aria-label="Режим отображения">
+            <button type="button" id="modeStep" class="active" aria-selected="true">Пошагово</button>
+            <button type="button" id="modeAll" aria-selected="false">Все вопросы</button>
+          </div>
+          <button type="button" id="themeToggle" class="btn-ghost" title="Сменить тему">🌓 Тема</button>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-line"><div id="progressVal" class="progress-val" style="width:0%"></div></div>
+        <div class="progress-meta">
+          <span id="progressText">Готово: 0 из 20</span>
+          <span id="percentText">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="instruction">
+      <strong>Инструкция:</strong> Предположим, что после соответствующего обучения вы сможете выполнить любую работу. Но если бы вам пришлось выбирать только из двух возможностей, что бы вы предпочли?
+    </div>
+  </header>
+
+  <!-- Индекс вопросов -->
+  <div class="q-index">
+    <div class="q-index-inner">
+      <div id="qIndexRow" class="index-row" role="tablist" aria-label="Быстрый переход по вопросам"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <form id="quizForm" novalidate>
+      <!-- 1 -->
+      <div class="question" data-q="1" tabindex="-1">
+        <div class="q-title"><b>1.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q1" value="1a" id="q1a" /><span class="card"><span class="letter">А</span><span class="txt">1а. Ухаживать за животными</span></span></label>
+          <label class="option-card"><input type="radio" name="q1" value="1b" id="q1b" /><span class="card"><span class="letter">Б</span><span class="txt">1б. Обслуживать машины</span></span></label>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="question" data-q="2" tabindex="-1" hidden>
+        <div class="q-title"><b>2.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q2" value="2a" id="q2a" /><span class="card"><span class="letter">А</span><span class="txt">2а. Помогать больным людям, лечить их</span></span></label>
+          <label class="option-card"><input type="radio" name="q2" value="2b" id="q2b" /><span class="card"><span class="letter">Б</span><span class="txt">2б. Составлять таблицы, схемы, программы для вычислительных машин</span></span></label>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="question" data-q="3" tabindex="-1" hidden>
+        <div class="q-title"><b>3.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q3" value="3a" id="q3a" /><span class="card"><span class="letter">А</span><span class="txt">3а. Участвовать в оформлении книг, плакатов, журналов</span></span></label>
+          <label class="option-card"><input type="radio" name="q3" value="3b" id="q3b" /><span class="card"><span class="letter">Б</span><span class="txt">3б. Следить за состоянием и развитием растений</span></span></label>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="question" data-q="4" tabindex="-1" hidden>
+        <div class="q-title"><b>4.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q4" value="4a" id="q4a" /><span class="card"><span class="letter">А</span><span class="txt">4а. Обрабатывать материалы (древесину, ткань, металл, пластмассу и др.)</span></span></label>
+          <label class="option-card"><input type="radio" name="q4" value="4b" id="q4b" /><span class="card"><span class="letter">Б</span><span class="txt">4б. Доводить товары до потребителя (рекламировать)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="question" data-q="5" tabindex="-1" hidden>
+        <div class="q-title"><b>5.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q5" value="5a" id="q5a" /><span class="card"><span class="letter">А</span><span class="txt">5а. Обсуждать научно-популярные книги, статьи</span></span></label>
+          <label class="option-card"><input type="radio" name="q5" value="5b" id="q5b" /><span class="card"><span class="letter">Б</span><span class="txt">5б. Обсуждать художественные книги (или пьесы, концерты)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="question" data-q="6" tabindex="-1" hidden>
+        <div class="q-title"><b>6.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q6" value="6a" id="q6a" /><span class="card"><span class="letter">А</span><span class="txt">6а. Содержать животных</span></span></label>
+          <label class="option-card"><input type="radio" name="q6" value="6b" id="q6b" /><span class="card"><span class="letter">Б</span><span class="txt">6б. Тренировать товарищей (или младших школьников) в выполнении каких-либо действий (трудовых, учебных, спортивных)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="question" data-q="7" tabindex="-1" hidden>
+        <div class="q-title"><b>7.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q7" value="7a" id="q7a" /><span class="card"><span class="letter">А</span><span class="txt">7а. Копировать рисунки, изображения (или настраивать музыкальные инструменты)</span></span></label>
+          <label class="option-card"><input type="radio" name="q7" value="7b" id="q7b" /><span class="card"><span class="letter">Б</span><span class="txt">7б. Управлять подъемным краном, трактором, тепловозом и т. п.</span></span></label>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="question" data-q="8" tabindex="-1" hidden>
+        <div class="q-title"><b>8.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q8" value="8a" id="q8a" /><span class="card"><span class="letter">А</span><span class="txt">8а. Сообщать (разъяснять) людям какие-либо сведения (в справочном бюро, на экскурсии)</span></span></label>
+          <label class="option-card"><input type="radio" name="q8" value="8b" id="q8b" /><span class="card"><span class="letter">Б</span><span class="txt">8б. Художественно оформлять выставки, витрины (или участвовать в подготовке пьес, концертов)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 9 -->
+      <div class="question" data-q="9" tabindex="-1" hidden>
+        <div class="q-title"><b>9.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q9" value="9a" id="q9a" /><span class="card"><span class="letter">А</span><span class="txt">9а. Ремонтировать вещи (одежду, технику), жилище</span></span></label>
+          <label class="option-card"><input type="radio" name="q9" value="9b" id="q9b" /><span class="card"><span class="letter">Б</span><span class="txt">9б. Искать и исправлять ошибки в текстах, таблицах, рисунках</span></span></label>
+        </div>
+      </div>
+
+      <!-- 10 -->
+      <div class="question" data-q="10" tabindex="-1" hidden>
+        <div class="q-title"><b>10.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q10" value="10a" id="q10a" /><span class="card"><span class="letter">А</span><span class="txt">10а. Лечить животных</span></span></label>
+          <label class="option-card"><input type="radio" name="q10" value="10b" id="q10b" /><span class="card"><span class="letter">Б</span><span class="txt">10б. Выполнять вычисления, расчеты</span></span></label>
+        </div>
+      </div>
+
+      <!-- 11 -->
+      <div class="question" data-q="11" tabindex="-1" hidden>
+        <div class="q-title"><b>11.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q11" value="11a" id="q11a" /><span class="card"><span class="letter">А</span><span class="txt">11а. Выводить новые сорта растений</span></span></label>
+          <label class="option-card"><input type="radio" name="q11" value="11b" id="q11b" /><span class="card"><span class="letter">Б</span><span class="txt">11б. Конструировать, проектировать новые виды изделий (машины, одежду, дома и т. п.)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 12 -->
+      <div class="question" data-q="12" tabindex="-1" hidden>
+        <div class="q-title"><b>12.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q12" value="12a" id="q12a" /><span class="card"><span class="letter">А</span><span class="txt">12а. Разрешать споры, предупреждать ссоры, убеждать, разъяснять, поощрять, наказывать</span></span></label>
+          <label class="option-card"><input type="radio" name="q12" value="12b" id="q12b" /><span class="card"><span class="letter">Б</span><span class="txt">12б. Разбираться в чертежах, схемах, таблицах (проверять, уточнять, приводить в порядок)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 13 -->
+      <div class="question" data-q="13" tabindex="-1" hidden>
+        <div class="q-title"><b>13.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q13" value="13a" id="q13a" /><span class="card"><span class="letter">А</span><span class="txt">13а. Участвовать в работе кружков художественной самодеятельности</span></span></label>
+          <label class="option-card"><input type="radio" name="q13" value="13b" id="q13b" /><span class="card"><span class="letter">Б</span><span class="txt">13б. Наблюдать, изучать жизнь микробов</span></span></label>
+        </div>
+      </div>
+
+      <!-- 14 -->
+      <div class="question" data-q="14" tabindex="-1" hidden>
+        <div class="q-title"><b>14.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q14" value="14a" id="q14a" /><span class="card"><span class="letter">А</span><span class="txt">14а. Налаживать медицинские приборы, аппараты</span></span></label>
+          <label class="option-card"><input type="radio" name="q14" value="14b" id="q14b" /><span class="card"><span class="letter">Б</span><span class="txt">14б. Оказывать людям медицинскую помощь при ранениях, ушибах и т. п.</span></span></label>
+        </div>
+      </div>
+
+      <!-- 15 -->
+      <div class="question" data-q="15" tabindex="-1" hidden>
+        <div class="q-title"><b>15.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q15" value="15a" id="q15a" /><span class="card"><span class="letter">А</span><span class="txt">15а. Составлять точные описания, отчеты о наблюдаемых явлениях, событиях, измеряемых объектах и т. п.</span></span></label>
+          <label class="option-card"><input type="radio" name="q15" value="15b" id="q15b" /><span class="card"><span class="letter">Б</span><span class="txt">15б. Художественно описывать, отображать события (наблюдаемые или представляемые)</span></span></label>
+        </div>
+      </div>
+
+      <!-- 16 -->
+      <div class="question" data-q="16" tabindex="-1" hidden>
+        <div class="q-title"><b>16.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q16" value="16a" id="q16a" /><span class="card"><span class="letter">А</span><span class="txt">16а. Выполнять лабораторные анализы в больнице</span></span></label>
+          <label class="option-card"><input type="radio" name="q16" value="16b" id="q16b" /><span class="card"><span class="letter">Б</span><span class="txt">16б. Принимать, осматривать больных, беседовать с ними, назначать лечение</span></span></label>
+        </div>
+      </div>
+
+      <!-- 17 -->
+      <div class="question" data-q="17" tabindex="-1" hidden>
+        <div class="q-title"><b>17.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q17" value="17a" id="q17a" /><span class="card"><span class="letter">А</span><span class="txt">17а. Красить или расписывать стены или помещения, поверхность изделий</span></span></label>
+          <label class="option-card"><input type="radio" name="q17" value="17b" id="q17b" /><span class="card"><span class="letter">Б</span><span class="txt">17б. Осуществлять монтаж зданий или сборку машин, приборов</span></span></label>
+        </div>
+      </div>
+
+      <!-- 18 -->
+      <div class="question" data-q="18" tabindex="-1" hidden>
+        <div class="q-title"><b>18.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q18" value="18a" id="q18a" /><span class="card"><span class="letter">А</span><span class="txt">18а. Организовывать культпоходы сверстников или младших товарищей (в театры, музеи), экскурсии, туристические походы и т. п.</span></span></label>
+          <label class="option-card"><input type="radio" name="q18" value="18b" id="q18b" /><span class="card"><span class="letter">Б</span><span class="txt">18б. Играть на сцене, принимать участие в концертах</span></span></label>
+        </div>
+      </div>
+
+      <!-- 19 -->
+      <div class="question" data-q="19" tabindex="-1" hidden>
+        <div class="q-title"><b>19.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q19" value="19a" id="q19a" /><span class="card"><span class="letter">А</span><span class="txt">19а. Изготавливать по чертежам детали, изделия (машины, одежду), строить здания</span></span></label>
+          <label class="option-card"><input type="radio" name="q19" value="19b" id="q19b" /><span class="card"><span class="letter">Б</span><span class="txt">19б. Заниматься черчением, копировать чертежи, карты</span></span></label>
+        </div>
+      </div>
+
+      <!-- 20 -->
+      <div class="question" data-q="20" tabindex="-1" hidden>
+        <div class="q-title"><b>20.</b><span class="hint">Выберите один вариант</span></div>
+        <div class="options">
+          <label class="option-card"><input type="radio" name="q20" value="20a" id="q20a" /><span class="card"><span class="letter">А</span><span class="txt">20а. Вести борьбу с болезнями растений, с вредителями леса, сада</span></span></label>
+          <label class="option-card"><input type="radio" name="q20" value="20b" id="q20b" /><span class="card"><span class="letter">Б</span><span class="txt">20б. Работать на клавишных машинах (пишущей машинке, телетайпе и др.)</span></span></label>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions" role="region" aria-label="Навигация по тесту">
+        <button type="button" id="prevBtn" class="btn-ghost">← Назад</button>
+        <button type="button" id="nextBtn" class="btn-ghost">Далее →</button>
+        <button type="button" id="jumpBtn" class="btn-ghost" title="Перейти к первому пропущенному">Пропущенное</button>
+        <div class="spacer"></div>
+        <button id="submitBtn" class="btn-primary" disabled>Показать результаты</button>
+        <button type="button" id="resetBtn" class="btn">Сбросить</button>
+      </div>
+      <div class="kbd-hint">Подсказка: 1/2 — выбрать вариант, ←/→ — навигация, Enter — далее/результаты</div>
+    </form>
+
+    <!-- Results -->
+    <section id="results" class="results" aria-live="polite">
+      <h2>Результаты</h2>
+      <div class="summary" id="summary">
+        <div class="pill">I — <b id="count-I">0</b> <span class="muted">Человек–природа</span></div>
+        <div class="pill">II — <b id="count-II">0</b> <span class="muted">Человек–техника</span></div>
+        <div class="pill">III — <b id="count-III">0</b> <span class="muted">Человек–человек</span></div>
+        <div class="pill">IV — <b id="count-IV">0</b> <span class="muted">Человек–знаковые системы</span></div>
+        <div class="pill">V — <b id="count-V">0</b> <span class="muted">Человек–художественный образ</span></div>
+      </div>
+
+      <table class="scoring" id="resultTable">
+        <thead>
+          <tr>
+            <th title="I — Человек–природа">I</th>
+            <th title="II — Человек–техника">II</th>
+            <th title="III — Человек–человек">III</th>
+            <th title="IV — Человек–знаковые системы">IV</th>
+            <th title="V — Человек–художественный образ">V</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td data-opt="1a">1а</td><td data-opt="1b">1б</td><td data-opt="2a">2а</td><td data-opt="2b">2б</td><td data-opt="3a">3а</td></tr>
+          <tr><td data-opt="3b">3б</td><td data-opt="4a">4а</td><td data-opt="4b">4б</td><td data-opt="5a">5а</td><td data-opt="5b">5б</td></tr>
+          <tr><td data-opt="6a">6а</td><td></td><td data-opt="6b">6б</td><td></td><td data-opt="7a">7а</td></tr>
+          <tr><td></td><td data-opt="7b">7б</td><td data-opt="8a">8а</td><td></td><td data-opt="8b">8б</td></tr>
+          <tr><td></td><td data-opt="9a">9а</td><td></td><td data-opt="9b">9б</td><td></td></tr>
+          <tr><td data-opt="10a">10а</td><td></td><td></td><td data-opt="10b">10б</td><td></td></tr>
+          <tr><td data-opt="11a">11а</td><td data-opt="11b">11б</td><td data-opt="12a">12а</td><td data-opt="12b">12б</td><td data-opt="13a">13а</td></tr>
+          <tr><td data-opt="13b">13б</td><td data-opt="14a">14а</td><td data-opt="14b">14б</td><td data-opt="15a">15а</td><td data-opt="15b">15б</td></tr>
+          <tr><td data-opt="16a">16а</td><td></td><td data-opt="16b">16б</td><td></td><td data-opt="17a">17а</td></tr>
+          <tr><td></td><td data-opt="17b">17б</td><td data-opt="18a">18а</td><td></td><td data-opt="18b">18б</td></tr>
+          <tr><td></td><td data-opt="19a">19а</td><td></td><td data-opt="19b">19б</td><td></td></tr>
+          <tr><td data-opt="20a">20а</td><td></td><td></td><td data-opt="20b">20б</td><td></td></tr>
+        </tbody>
+      </table>
+
+      <div class="legend">I — Человек–природа; II — Человек–техника; III — Человек–человек; IV — Человек–знаковые системы; V — Человек–художественный образ.</div>
+
+      <div class="insight" id="insight">
+        <h3>Обработка результатов</h3>
+        <p id="insightText" class="note">После ответа на все вопросы здесь появится интерпретация результатов.</p>
+        <div class="bars" id="bars" aria-hidden="true"></div>
+        <div class="note">
+          <button type="button" id="copyBtn" class="btn-ghost">Скопировать результаты</button>
+          <button type="button" id="printBtn" class="btn-ghost">Печать / PDF</button>
+        </div>
+      </div>
+
+      <section class="type-cards" id="typeCards" aria-label="Описание типов"></section>
+      <div class="footer-note">Результаты ориентировочные. Для точного выбора профессии полезна очная консультация профориентолога.</div>
+    </section>
+  </div>
+
+  <script>
+    (function(){
+      const TOTAL_Q = 20;
+      const LS_KEY = 'pp-quiz-v3-minimal';
+
+      // DOM
+      const form = document.getElementById('quizForm');
+      const questions = Array.from(form.querySelectorAll('.question'));
+      const qIndexRow = document.getElementById('qIndexRow');
+
+      const modeStepBtn = document.getElementById('modeStep');
+      const modeAllBtn = document.getElementById('modeAll');
+      const themeToggle = document.getElementById('themeToggle');
+
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const jumpBtn = document.getElementById('jumpBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const submitBtn = document.getElementById('submitBtn');
+
+      const progressVal = document.getElementById('progressVal');
+      const progressText = document.getElementById('progressText');
+      const percentText = document.getElementById('percentText');
+
+      const results = document.getElementById('results');
+      const insightText = document.getElementById('insightText');
+      const barsBox = document.getElementById('bars');
+      const typeCardsBox = document.getElementById('typeCards');
+      const copyBtn = document.getElementById('copyBtn');
+      const printBtn = document.getElementById('printBtn');
+
+      // Соответствие вариант → колонка таблицы
+      const optionToColumn = {
+        '1a':'I','1b':'II','2a':'III','2b':'IV','3a':'V',
+        '3b':'I','4a':'II','4b':'III','5a':'IV','5b':'V',
+        '6a':'I','6b':'III','7a':'V','7b':'II','8a':'III','8b':'V',
+        '9a':'II','9b':'IV','10a':'I','10b':'IV',
+        '11a':'I','11b':'II','12a':'III','12b':'IV','13a':'V',
+        '13b':'I','14a':'II','14b':'III','15a':'IV','15b':'V',
+        '16a':'I','16b':'III','17a':'V','17b':'II',
+        '18a':'III','18b':'V','19a':'II','19b':'IV',
+        '20a':'I','20b':'IV'
+      };
+
+      const CAT_TOTAL = {I:8, II:8, III:8, IV:8, V:8};
+      const CAT_INFO = {
+        I: {code:'I', name:'Человек – Природа', short:'Природа',
+          description:'Вы — друг всего живого на планете Земля! Именно такие как вы становятся исследователями богатого Царства живой природы, создают сотни новых культур растений, лечат и спасают животных. Возможно, в вас закрался и талант первооткрывателя?',
+          psych:['наблюдательность','сопереживание','настойчивость','хладнокровие','готовность к самостоятельной работе в любых, даже трудных условиях'],
+          jobs:'биолог, агроном, ветеринар, лесник, зоотехник, агрохимик, садовод и др.',
+          edu:['Естественные науки','Науки о земле (геология, география, картография и геоинформатика, гидрометеорология, экология и природопользование)','Прикладная геология, горное дело, нефтегазовое дело','Биологические науки (биология, почвоведение, биоинженерия)','Промышленная экология и биотехнологии','Химические технологии','Сельское, лесное и рыбное хозяйство','Ветеринария и зоотехния']
+        },
+        II: {code:'II', name:'Человек – Техника', short:'Техника',
+          description:'Технический прогресс не стоит на месте и вы — его вечный двигатель! Вы знаете, как управиться со сломанным будильником, сможете точно настроить любую технику, не боитесь по-новому взглянуть на обычные вещи и, прикрутив пару гаек, получить новое изобретение. Сложные механизмы не пугают, а вдохновляют вас.',
+          psych:['внимательность','рациональность','развитое техническое мышление','хорошая координация движений','умение сосредотачиваться и быстро переключать внимание','наблюдательность'],
+          jobs:'инженер, конструктор, техник, слесарь, радиомеханик, пилот, электрик и др.',
+          edu:['Технические науки','Авиационная и ракетно-космическая техника','Техника и технологии кораблестроения и водного транспорта','Металлургия, машиностроение и материалообработка','Фотоника, приборостроение, оптические и биотехнические системы и технологии','Оружие и системы вооружения','Архитектура','Строительство','Техника и технологии наземного транспорта','Электронная техника и связь','Ядерная энергетика и технологии','Электро и теплоэнергетика','Инженерное образование в военных вузах']
+        },
+        III: {code:'III', name:'Человек – Человек', short:'Человек',
+          description:'В людском потоке вы как рыба в воде! Постоянный контакт с окружающими вас не пугает, напротив, в каждом человеке вы видите что-то интересное. Вы делитесь опытом, умеете договариваться и сопереживать.',
+          psych:['открытость и коммуникабельность','стрессоустойчивость','доброжелательность, отзывчивость','умение создавать положительную атмосферу','улаживание разногласий','ораторские способности, развитая мимика','знание психологии людей'],
+          jobs:'учитель, воспитатель, спортивный тренер, медицинский работник, сфера обслуживания, экскурсовод, юрист, специалист кадровой службы и др.',
+          edu:['Гуманитарные науки','Естественные науки','Общественные (социальные) науки','Образование и педагогика','Здравоохранение','Сфера обслуживания','Политические науки','Экономика и управление']
+        },
+        IV: {code:'IV', name:'Человек – Знаковая система', short:'Знаковая система',
+          description:'Математические расчёты, статистика, чертежи, ИТ — для вас это увлекательный мир. Вы ценны там, где важны внимательность, усидчивость и хорошая память.',
+          psych:['логика преобладает над эмоциями','умение концентрироваться','абстрактное мышление','умение оперировать отвлечёнными понятиями и знаками','терпение, внимательность'],
+          jobs:'программист, геодезист, математик, экономист, бухгалтер, редактор, корректор, делопроизводитель и др.',
+          edu:['Информатика и вычислительная техника','Информационная безопасность','Экономика и управление','Математика и механика','Компьютерные и информационные науки','Физика и астрономия','Языкознание и литературоведение']
+        },
+        V: {code:'V', name:'Человек – Художественный образ', short:'Художественный образ',
+          description:'Вы создан(ы) приносить красоту в мир. Воображение, интуиция и нестандартный взгляд — ваши сильные стороны.',
+          psych:['образное мышление','восприимчивость, чуткость','стремление к новому','креативность','хорошая зрительная и звуковая память','умение владеть телом'],
+          jobs:'актер, писатель, дизайнер, художник-оформитель, композитор, модельер, архитектор, скульптор, флорист, реставратор, гравер, ювелир, журналист, хореограф и др.',
+          edu:['Гуманитарные науки','Культура и искусство']
+        }
+      };
+
+      const countsEls = {
+        I: document.getElementById('count-I'),
+        II: document.getElementById('count-II'),
+        III: document.getElementById('count-III'),
+        IV: document.getElementById('count-IV'),
+        V: document.getElementById('count-V')
+      };
+
+      // Состояние
+      let current = 1;
+      let mode = 'step'; // 'step' | 'all'
+
+      // Кнопки-индексы
+      const idxButtons = [];
+      for(let i=1;i<=TOTAL_Q;i++){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'idx';
+        b.textContent = i;
+        b.setAttribute('aria-label', `Вопрос ${i}`);
+        b.dataset.i = String(i);
+        b.addEventListener('click', ()=>gotoQuestion(i,true));
+        idxButtons.push(b);
+        qIndexRow.appendChild(b);
+      }
+
+      function hasAnswer(i){
+        return !!form.querySelector(`input[name="q${i}"]:checked`);
+      }
+      function answeredCount(){
+        let filled = 0;
+        for(let i=1;i<=TOTAL_Q;i++) if(hasAnswer(i)) filled++;
+        return filled;
+      }
+      function firstUnanswered(start=1){
+        for(let i=start;i<=TOTAL_Q;i++) if(!hasAnswer(i)) return i;
+        for(let i=1;i<start;i++) if(!hasAnswer(i)) return i;
+        return null;
+      }
+
+      function updateProgressUI(){
+        const n = answeredCount();
+        const pct = Math.round((n/TOTAL_Q)*100);
+        progressVal.style.width = pct + '%';
+        progressText.textContent = `Готово: ${n} из ${TOTAL_Q}`;
+        percentText.textContent = `${pct}%`;
+        submitBtn.disabled = n !== TOTAL_Q;
+
+        idxButtons.forEach((b,idx)=>{
+          const i = idx+1;
+          b.classList.toggle('current', i===current);
+          b.classList.toggle('answered', hasAnswer(i));
+          b.setAttribute('aria-current', i===current ? 'true' : 'false');
+        });
+      }
+
+      function applyMode(){
+        const isStep = mode === 'step';
+        modeStepBtn.classList.toggle('active', isStep);
+        modeStepBtn.setAttribute('aria-selected', String(isStep));
+        modeAllBtn.classList.toggle('active', !isStep);
+        modeAllBtn.setAttribute('aria-selected', String(!isStep));
+
+        questions.forEach((q,idx)=>{
+          const i = idx+1;
+          q.hidden = isStep ? (i !== current) : false;
+        });
+
+        if(isStep){
+          const q = questions[current-1];
+          if(q){ q.scrollIntoView({behavior:'smooth', block:'center'}); q.focus({preventScroll:true}); }
+        }
+        saveState();
+      }
+
+      function gotoQuestion(i, smooth=false){
+        i = Math.min(Math.max(1, i), TOTAL_Q);
+        current = i;
+        if(mode === 'step'){
+          questions.forEach((q,idx)=>q.hidden = (idx+1)!==current);
+          const q = questions[current-1];
+          if(q){ q.scrollIntoView({behavior: smooth ? 'smooth':'auto', block:'center'}); q.focus({preventScroll:true}); }
+        }else{
+          const q = questions[current-1];
+          if(q){ q.scrollIntoView({behavior: smooth ? 'smooth':'auto', block:'start'}); }
+        }
+        updateProgressUI();
+        saveState();
+      }
+      function nextQuestion(){ if(current < TOTAL_Q) gotoQuestion(current+1,true); }
+      function prevQuestion(){ if(current > 1) gotoQuestion(current-1,true); }
+      function jumpToFirstUnanswered(){
+        const i = firstUnanswered(current) ?? firstUnanswered(1);
+        if(i) gotoQuestion(i,true);
+      }
+
+      // Автопереход после выбора в пошаговом режиме
+      form.addEventListener('input', (e)=>{
+        if(!(e.target instanceof HTMLInputElement)) return;
+        if(e.target.type === 'radio'){
+          updateProgressUI();
+          saveState();
+          if(mode==='step'){
+            setTimeout(()=>{
+              if(current === TOTAL_Q){
+                if(!submitBtn.disabled){ submitBtn.focus(); }
+              }else{
+                nextQuestion();
+              }
+            }, 140);
+          }
+        }
+      });
+
+      // Горячие клавиши
+      document.addEventListener('keydown', (e)=>{
+        const tag = (e.target && e.target.tagName || '').toLowerCase();
+        if(['input','textarea','select','button','a','summary'].includes(tag)) return;
+        if(results.classList.contains('active')) return;
+
+        if(e.key === 'ArrowRight'){ nextQuestion(); }
+        else if(e.key === 'ArrowLeft'){ prevQuestion(); }
+        else if(e.key === '1' || e.key.toLowerCase() === 'a'){
+          const inp = form.querySelector(`input[name="q${current}"][value="${current}a"]`) || form.querySelector(`#q${current}a`);
+          if(inp){ inp.checked = true; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+        }
+        else if(e.key === '2' || e.key.toLowerCase() === 'b'){
+          const inp = form.querySelector(`input[name="q${current}"][value="${current}b"]`) || form.querySelector(`#q${current}b`);
+          if(inp){ inp.checked = true; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+        }
+        else if(e.key === 'Enter'){
+          if(current < TOTAL_Q){ nextQuestion(); }
+          else if(!submitBtn.disabled){ submitBtn.click(); }
+        }
+      });
+
+      // Кнопки
+      prevBtn.addEventListener('click', prevQuestion);
+      nextBtn.addEventListener('click', nextQuestion);
+      jumpBtn.addEventListener('click', jumpToFirstUnanswered);
+
+      modeStepBtn.addEventListener('click', ()=>{ mode='step'; applyMode(); });
+      modeAllBtn.addEventListener('click', ()=>{ mode='all'; applyMode(); });
+
+      // Тема
+      function setTheme(theme){ document.documentElement.setAttribute('data-theme', theme); }
+      function toggleTheme(){
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = cur === 'light' ? 'dark' : 'light';
+        setTheme(next); saveState();
+      }
+      themeToggle.addEventListener('click', toggleTheme);
+
+      // Таблица результатов
+      function clearSelectionsInTable(){
+        document.querySelectorAll('#resultTable td.selected').forEach(td => td.classList.remove('selected'));
+      }
+      function getCountsAndHighlight(){
+        clearSelectionsInTable();
+        const counts = {I:0,II:0,III:0,IV:0,V:0};
+        for(let i=1;i<=TOTAL_Q;i++){
+          const checked = form.querySelector(`input[name="q${i}"]:checked`);
+          const code = checked?.value;
+          if(!code) continue;
+          const col = optionToColumn[code];
+          if(col){ counts[col]++; }
+          const cell = document.querySelector(`#resultTable td[data-opt="${code}"]`);
+          if(cell){ cell.classList.add('selected'); }
+        }
+        return counts;
+      }
+      function renderBars(counts){
+        const order = ['I','II','III','IV','V'];
+        barsBox.innerHTML = order.map(k=>{
+          const total = CAT_TOTAL[k] || 8;
+          const val = counts[k] || 0;
+          const pct = Math.round((val/total)*100);
+          return `
+            <div class="bar-row" role="group" aria-label="${CAT_INFO[k].name}">
+              <div class="bar-label">${k} — ${CAT_INFO[k].short}</div>
+              <div class="bar-track"><div class="bar-fill c-${k}" style="width:${pct}%"></div></div>
+              <div class="bar-count">${val}/${total}</div>
+            </div>
+          `;
+        }).join('');
+        barsBox.setAttribute('aria-hidden','false');
+      }
+      function renderTypeCards(openCats, counts){
+        const order = ['I','II','III','IV','V'];
+        typeCardsBox.innerHTML = order.map(k=>{
+          const info = CAT_INFO[k];
+          const open = openCats.includes(k) ? ' open' : '';
+          const strong = openCats.includes(k) ? ' badge-strong' : '';
+          const scoreBadge = `<span class="badge ${strong}">${k}: ${counts[k] || 0}/${CAT_TOTAL[k]} — ${info.short}</span>`;
+          return `
+            <details class="type"${open}>
+              <summary><span>${info.name}</span>${scoreBadge}</summary>
+              <div class="type-body">
+                <p>${info.description}</p>
+                <p><b>Психологические требования:</b></p>
+                <ul>${info.psych.map(p=>`<li>${p}</li>`).join('')}</ul>
+                <p><b>Примеры профессий:</b> ${info.jobs}</p>
+                <p><b>Рекомендованы образовательные направления:</b></p>
+                <ul>${info.edu.map(e=>`<li>${e}</li>`).join('')}</ul>
+              </div>
+            </details>
+          `;
+        }).join('');
+      }
+      function renderInsight(counts){
+        const entries = Object.entries(counts);
+        const max = Math.max(...entries.map(([_,v])=>v));
+        const leaders = entries.filter(([_,v])=>v===max).map(([k])=>k);
+        const leaderNames = leaders.map(k => CAT_INFO[k].name).join(', ');
+        const leadText = leaders.length === 1
+          ? `Ведущее направление: ${leaderNames} — ${max} из 8 утвердительных ответов.`
+          : `Ведущие направления (ничья): ${leaderNames} — по ${max} из 8.`;
+        insightText.classList.remove('note');
+        insightText.innerHTML = `${leadText} Это подсказывает, в каком направлении стоит выбирать будущую профессию.`;
+        renderTypeCards(leaders, counts);
+      }
+
+      // Сабмит
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        if(answeredCount() !== TOTAL_Q){
+          alert('Пожалуйста, ответьте на все вопросы.');
+          return;
+        }
+        const counts = getCountsAndHighlight();
+        for(const key of ['I','II','III','IV','V']){
+          countsEls[key].textContent = counts[key] || 0;
+        }
+        renderBars(counts);
+        renderInsight(counts);
+        results.classList.add('active');
+        results.scrollIntoView({behavior:'smooth', block:'start'});
+        saveState();
+      });
+
+      // Копия / Печать
+      function copyResultsToClipboard(){
+        const counts = {
+          I: parseInt(countsEls.I.textContent || '0',10),
+          II: parseInt(countsEls.II.textContent || '0',10),
+          III: parseInt(countsEls.III.textContent || '0',10),
+          IV: parseInt(countsEls.IV.textContent || '0',10),
+          V: parseInt(countsEls.V.textContent || '0',10),
+        };
+        const max = Math.max(counts.I, counts.II, counts.III, counts.IV, counts.V);
+        const leaders = Object.keys(counts).filter(k => counts[k] === max).map(k => `${k} (${CAT_INFO[k].name})`);
+        const text = [
+          'Результаты теста профессиональных предпочтений:',
+          `I (Человек – Природа): ${counts.I}/8`,
+          `II (Человек – Техника): ${counts.II}/8`,
+          `III (Человек – Человек): ${counts.III}/8`,
+          `IV (Человек – Знаковая система): ${counts.IV}/8`,
+          `V (Человек – Художественный образ): ${counts.V}/8`,
+          leaders.length > 1
+            ? `Ведущие направления: ${leaders.join(', ')} — по ${max} из 8.`
+            : `Ведущее направление: ${leaders.join(', ')} — ${max} из 8.`
+        ].join('\n');
+
+        if(navigator.clipboard?.writeText){
+          navigator.clipboard.writeText(text).then(()=>{
+            copyBtn.textContent = 'Скопировано!';
+            setTimeout(()=>copyBtn.textContent='Скопировать результаты', 1500);
+          }).catch(()=>fallbackCopy(text));
+        }else{ fallbackCopy(text); }
+      }
+      function fallbackCopy(text){
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); }catch(e){}
+        document.body.removeChild(ta);
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(()=>copyBtn.textContent='Скопировать результаты', 1500);
+      }
+      copyBtn?.addEventListener('click', copyResultsToClipboard);
+      printBtn?.addEventListener('click', ()=>window.print());
+
+      // Сброс
+      function resetAll(){
+        form.reset();
+        current = 1;
+        results.classList.remove('active');
+        insightText.textContent = 'После ответа на все вопросы здесь появится интерпретация результатов.';
+        insightText.classList.add('note');
+        barsBox.innerHTML = '';
+        typeCardsBox.innerHTML = '';
+        clearSelectionsInTable();
+        countsEls.I.textContent = '0';
+        countsEls.II.textContent = '0';
+        countsEls.III.textContent = '0';
+        countsEls.IV.textContent = '0';
+        countsEls.V.textContent = '0';
+        updateProgressUI();
+        applyMode();
+        window.scrollTo({top:0, behavior:'smooth'});
+        localStorage.removeItem(LS_KEY);
+      }
+      resetBtn.addEventListener('click', resetAll);
+
+      // Сохранение
+      function saveState(){
+        try{
+          const data = {answers:{}, current, mode, theme: document.documentElement.getAttribute('data-theme') || 'light'};
+          for(let i=1;i<=TOTAL_Q;i++){
+            const checked = form.querySelector(`input[name="q${i}"]:checked`);
+            if(checked) data.answers[`q${i}`] = checked.value;
+          }
+          localStorage.setItem(LS_KEY, JSON.stringify(data));
+        }catch(e){}
+      }
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(LS_KEY);
+          if(!raw) return;
+          const data = JSON.parse(raw);
+          if(data && data.answers){
+            for(let i=1;i<=TOTAL_Q;i++){
+              const val = data.answers[`q${i}`];
+              if(val){
+                const inp = form.querySelector(`input[name="q${i}"][value="${val}"]`);
+                if(inp){ inp.checked = true; }
+              }
+            }
+          }
+          if(data?.current) current = Math.min(Math.max(1, data.current), TOTAL_Q);
+          if(data?.mode) mode = data.mode === 'all' ? 'all' : 'step';
+          if(data?.theme) setTheme(data.theme);
+        }catch(e){}
+      }
+
+      // Инициализация
+      loadState();
+      updateProgressUI();
+      applyMode();
+
+    })();
+  </script>
+</body>
+</html>
